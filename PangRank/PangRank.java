@@ -165,35 +165,35 @@ public class PageRank{
     public static void main(String[] args) throws Exception{
         String input;
         String output;
-        String time="Time for first ten cycle: ";
-        float threshold=Float.valueOf(args[2]);
-        int iteration=0;
-        int iterationLimit=50;//Max iterations.
-        boolean status=false;
-        Path inputPath=new Path(args[0]);
-        Path upper=inputPath.getParent();
-        input=args[0];
-        output=args[1];
-        String infoPath=args[0]+"static/info";
-        String cyclePath=args[0]+"static/cycle";
-        String rankResult=args[0]+"static/rank";
-        String timeResult=args[0]+"static/time";
-        long prSum=0;
-        long startTime=System.currentTimeMillis();
-        long endTime=0;
+        String time = "Time for first ten cycle: ";
+        float threshold = Float.valueOf(args[2]);
+        int iteration = 0;
+        int iterationLimit = 50;//Max iterations.
+        boolean status = false;
+        Path inputPath = new Path(args[0]);
+        Path upper = inputPath.getParent();
+        input = args[0];
+        output = args[1];
+        String infoPath = args[0] + "static/info";
+        String cyclePath= args[0] + "static/cycle";
+        String rankResult = args[0] + "static/rank";
+        String timeResult = args[0] + "static/time";
+        long prSum = 0;
+        long startTime = System.currentTimeMillis();
+        long endTime = 0;
 
-        while(iteration<iterationLimit){
+        while (iteration < iterationLimit){
 
-            if(iteration>0){
+            if (iteration > 0){
                 input=output;
                 output=args[1]+iteration;
             }
 
-            Configuration conf=new Configuration();
-            FileSystem fs=upper.getFileSystem(conf);
+            Configuration conf = new Configuration();
+            FileSystem fs = upper.getFileSystem(conf);
             //fs.delete(new Path(output), true);
 
-            Job job=Job.getInstance(conf, "pagerank");
+            Job job = Job.getInstance(conf, "pagerank");
             job.setJarByClass(PageRank.class);
             job.setMapperClass(PageRankMapper.class);
             job.setReducerClass(PageRankReducer.class);
@@ -201,19 +201,15 @@ public class PageRank{
             job.setOutputValueClass(Text.class);
             TextInputFormat.addInputPath(job, new Path(input));
             TextOutputFormat.setOutputPath(job, new Path(output));
-            status=job.waitForCompletion(true);
+            status = job.waitForCompletion(true);
             iteration++;
 
-            //long count=job.getCounters().findCounter(PageCount.Count).getValue();
-            long totalPr=job.getCounters().findCounter(PageCount.TotalPR).getValue();
-            //System.out.println("PageCount: "+count);
-            //System.out.println("TotalPR: "+totalPr);
-            //double perPr=totalPr/(count*1.0d);
-            //	System.out.println("Per PR: "+perPr);
-            if(iteration==1){
+            long totalPr = job.getCounters().findCounter(PageCount.TotalPR).getValue();
+
+            if (iteration==1){
                 fs.delete(new Path(infoPath), true);
-                FSDataOutputStream outStream=fs.create(new Path(infoPath));
-                StringBuffer resultStringBuffer=new StringBuffer();
+                FSDataOutputStream outStream = fs.create(new Path(infoPath));
+                StringBuffer resultStringBuffer = new StringBuffer();
                 resultStringBuffer.append("Nodes Num: ");
                 resultStringBuffer.append(job.getCounters().findCounter(PageCount.NodeCount).getValue());
                 resultStringBuffer.append("\nMax degree: ");
@@ -222,31 +218,31 @@ public class PageRank{
                 resultStringBuffer.append(job.getCounters().findCounter(PageCount.MinDegree).getValue());
                 resultStringBuffer.append("\nEdges: ");
                 resultStringBuffer.append(job.getCounters().findCounter(PageCount.Edges).getValue());
-                String resString=resultStringBuffer.toString();
+                String resString = resultStringBuffer.toString();
                 outStream.write(resString.getBytes());
                 outStream.close();
             }
 
-            if(iteration==1){
-                endTime=startTime-System.currentTimeMillis();
-                time=time+endTime+"\n";
+            if (iteration == 1){
+                endTime = startTime - System.currentTimeMillis();
+                time = time + endTime + "\n";
             }
 
 
-            if(Math.abs(prSum-totalPr)<1000*threshold&&iteration>11){//If the diff of sum of pageranks greater than threshold, break. At least 5 iters.
+            if (Math.abs(prSum - totalPr) < 1000*threshold && iteration > 11){//If the diff of sum of pageranks less than threshold, break. At least 11 iters.
                 fs.delete(new Path(cyclePath), true);
-                FSDataOutputStream outStream=fs.create(new Path(cyclePath));
-                String resString="Finishing Iteration: "+iteration;
+                FSDataOutputStream outStream = fs.create(new Path(cyclePath));
+                String resString = "Finishing Iteration: "+iteration;
                 outStream.write(resString.getBytes());
                 outStream.close();
                 break;
             }
-            prSum=totalPr;
+            prSum = totalPr;
         }
-        Configuration conf=new Configuration();
-        FileSystem fs=upper.getFileSystem(conf);
+        Configuration conf = new Configuration();
+        FileSystem fs = upper.getFileSystem(conf);
         fs.delete(new Path(rankResult), true);
-        Job job=Job.getInstance(conf, "sort");
+        Job job = Job.getInstance(conf, "sort");
         job.setJarByClass(PageRank.class);
         job.setMapperClass(SortMapper.class);
         job.setReducerClass(SortReducer.class);
@@ -258,15 +254,15 @@ public class PageRank{
         TextInputFormat.addInputPath(job, new Path(output));
         TextOutputFormat.setOutputPath(job, new Path(rankResult));
         //Write the time result to time result path.
-        endTime=startTime-System.currentTimeMillis();
-        time=time+"Total time is: "+endTime;
+        endTime = startTime - System.currentTimeMillis();
+        time = time + "Total time is: " + endTime;
         fs.delete(new Path(timeResult), true);
-        FSDataOutputStream outStream=fs.create(new Path(timeResult));
+        FSDataOutputStream outStream = fs.create(new Path(timeResult));
         outStream.write(time.getBytes());
         outStream.close();
 
-        status=job.waitForCompletion(true);
-        System.exit(status?0:1);
+        status = job.waitForCompletion(true);
+        System.exit(status? 0 : 1);
     }
 }
 
